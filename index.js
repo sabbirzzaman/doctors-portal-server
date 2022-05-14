@@ -13,27 +13,52 @@ app.use(express.json());
 // Connect mongodb
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ucjh0.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+const client = new MongoClient(uri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverApi: ServerApiVersion.v1,
+});
 
 const run = async () => {
-    await client.connect()
+    await client.connect();
 
-    try{
-        const treatmentCollection = client.db('doctors-collection').collection('treatment')
+    try {
+        const treatmentCollection = client
+            .db('doctors-collection')
+            .collection('treatment');
+        const bookingCollection = client
+            .db('doctors-collection')
+            .collection('booking');
 
         // treatment API
         app.get('/treatments', async (req, res) => {
             const query = {};
-            const cursor = treatmentCollection.find(query)
+            const cursor = treatmentCollection.find(query);
 
             const result = await cursor.toArray();
-            res.send(result)
-        })
-    }
-    finally{}
-}
+            res.send(result);
+        });
 
-run().catch(console.dir)
+        app.post('/treatment', async (req, res) => {
+            const treatment = req.body;
+            const query = {
+                treatmentName: treatment.treatmentName,
+                appointmentDate: treatment.appointmentDate,
+                patientName: treatment.patientName,
+            };
+            const exist = await bookingCollection.findOne(query);
+            if(exist) {
+                return res.send({success: false, booking: exist})
+            } else {
+                const result = await bookingCollection.insertOne(treatment);
+                return res.send({success: true, result});
+            }
+        });
+    } finally {
+    }
+};
+
+run().catch(console.dir);
 
 // Root Api
 app.get('/', (req, res) => {
