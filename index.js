@@ -54,6 +54,28 @@ const run = async () => {
                 return res.send({success: true, result});
             }
         });
+
+        app.get('/available', async (req, res) => {
+            const date = req.query.date;
+
+            // get all services
+            const treatments = await treatmentCollection.find().toArray();
+
+            // get booking of the selected date
+            const query = {appointmentDate: date}
+            const bookings = await bookingCollection.find(query).toArray();
+
+            treatments.forEach(treatment => {
+                const appointmentBookings = bookings.filter(booking => booking.treatmentName === treatment.name);
+                const booked = appointmentBookings.map(booking => booking.appointmentSlot);
+
+                const available = treatment.slots.filter(slot => !booked.includes(slot))
+
+                treatment.slots = available;
+            })
+
+            res.send(treatments)
+        })
     } finally {
     }
 };
