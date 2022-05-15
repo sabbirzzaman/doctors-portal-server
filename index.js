@@ -44,7 +44,7 @@ const run = async () => {
             const query = {
                 treatmentName: treatment.treatmentName,
                 appointmentDate: treatment.appointmentDate,
-                patientName: treatment.patientName,
+                patientEmail: treatment.patientEmail,
             };
             const exist = await bookingCollection.findOne(query);
             if(exist) {
@@ -76,6 +76,15 @@ const run = async () => {
 
             res.send(treatments)
         })
+
+        app.get('/bookings', async (req, res) => {
+            const email = req.query.email;
+            const query = {patientEmail: email}
+
+            const result = await bookingCollection.find(query).toArray();
+
+            res.send(result)
+        } )
     } finally {
     }
 };
