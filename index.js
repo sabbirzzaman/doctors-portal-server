@@ -148,11 +148,10 @@ const run = async () => {
             res.send({ result, accessToken });
         });
 
-        // app,get('/users', async (req, res) => {
-        //     const email = req.query.email;
-        //     const result = await userCollection.find().toArray();
-        //     res.send(result)
-        // })
+        app.get('/users', async (req, res) => {
+            const result = await userCollection.find().toArray();
+            res.send(result)
+        })
     } finally {
     }
 };
