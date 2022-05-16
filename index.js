@@ -26,9 +26,14 @@ const run = async () => {
         const treatmentCollection = client
             .db('doctors-collection')
             .collection('treatment');
+
         const bookingCollection = client
             .db('doctors-collection')
             .collection('booking');
+
+        const userCollection = client
+            .db('doctors-collection')
+            .collection('users');
 
         // treatment API
         app.get('/treatments', async (req, res) => {
@@ -47,11 +52,11 @@ const run = async () => {
                 patientEmail: treatment.patientEmail,
             };
             const exist = await bookingCollection.findOne(query);
-            if(exist) {
-                return res.send({success: false, booking: exist})
+            if (exist) {
+                return res.send({ success: false, booking: exist });
             } else {
                 const result = await bookingCollection.insertOne(treatment);
-                return res.send({success: true, result});
+                return res.send({ success: true, result });
             }
         });
 
@@ -62,29 +67,54 @@ const run = async () => {
             const treatments = await treatmentCollection.find().toArray();
 
             // get booking of the selected date
-            const query = {appointmentDate: date}
+            const query = { appointmentDate: date };
             const bookings = await bookingCollection.find(query).toArray();
 
-            treatments.forEach(treatment => {
-                const appointmentBookings = bookings.filter(booking => booking.treatmentName === treatment.name);
-                const booked = appointmentBookings.map(booking => booking.appointmentSlot);
+            treatments.forEach((treatment) => {
+                const appointmentBookings = bookings.filter(
+                    (booking) => booking.treatmentName === treatment.name
+                );
+                const booked = appointmentBookings.map(
+                    (booking) => booking.appointmentSlot
+                );
 
-                const available = treatment.slots.filter(slot => !booked.includes(slot))
+                const available = treatment.slots.filter(
+                    (slot) => !booked.includes(slot)
+                );
 
                 treatment.slots = available;
-            })
+            });
 
-            res.send(treatments)
-        })
+            res.send(treatments);
+        });
 
         app.get('/bookings', async (req, res) => {
             const email = req.query.email;
-            const query = {patientEmail: email}
+            const query = { patientEmail: email };
 
             const result = await bookingCollection.find(query).toArray();
 
-            res.send(result)
-        } )
+            res.send(result);
+        });
+
+        app.put('/users/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+
+            const query = { email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+            };
+
+            const result = await userCollection.updateOne(
+                query,
+                updateDoc,
+                options
+            );
+
+            res.send(result);
+        });
     } finally {
     }
 };
