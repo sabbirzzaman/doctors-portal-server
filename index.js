@@ -80,6 +80,7 @@ const run = async () => {
             }
         });
 
+        // treatment api with only available slots
         app.get('/available', async (req, res) => {
             const date = req.query.date;
 
@@ -108,6 +109,7 @@ const run = async () => {
             res.send(treatments);
         });
 
+        // Booking Api
         app.get('/bookings', verifyToken, async (req, res) => {
             const email = req.query.email;
             const query = { patientEmail: email };
@@ -121,6 +123,13 @@ const run = async () => {
             }
         });
 
+        // user api
+        app.get('/users', verifyToken, async (req, res) => {
+            const result = await userCollection.find().toArray();
+            res.send(result);
+        });
+
+        // user by login
         app.put('/users/:email', async (req, res) => {
             const email = req.params.email;
             const user = req.body;
@@ -148,9 +157,33 @@ const run = async () => {
             res.send({ result, accessToken });
         });
 
-        app.get('/users', async (req, res) => {
-            const result = await userCollection.find().toArray();
-            res.send(result)
+        // set admin role
+        app.put('/users/admin/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+            const requester = req.decoded.email;
+            const requesterUser = await userCollection.findOne({
+                email: requester,g
+            });
+
+            if (requesterUser.role === 'Admin') {
+                const query = { email };
+                const updateDoc = {
+                    $set: { role: 'Admin' },
+                };
+
+                const result = await userCollection.updateOne(query, updateDoc);
+                res.send(result);
+            } else {
+                res.status(403).send({message: 'Forbidden Access'})
+            }
+        });
+
+        app.get('/admin/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+            const user = await userCollection.findOne({email})
+            const isAdmin = user.role === 'Admin';
+
+            res.send({admin: isAdmin})
         })
     } finally {
     }
