@@ -55,15 +55,33 @@ const run = async () => {
             .db('doctors-collection')
             .collection('users');
 
+        const doctorCollection = client
+            .db('doctors-collection')
+            .collection('doctors');
+
+        const verifyAdmin = async (req, res, next) => {
+            const requester = req.decoded.email;
+            const requesterUser = await userCollection.findOne({
+                email: requester,
+            });
+
+            if (requesterUser.role === 'Admin') {
+                next();
+            } else {
+                res.status(403).send({ message: 'Forbidden Access' });
+            }
+        };
+
         // treatment API
         app.get('/treatments', async (req, res) => {
             const query = {};
-            const cursor = treatmentCollection.find(query);
+            const cursor = treatmentCollection.find(query).project({ name: 1 });
 
             const result = await cursor.toArray();
             res.send(result);
         });
 
+        // treatment post api
         app.post('/treatment', async (req, res) => {
             const treatment = req.body;
             const query = {
@@ -158,14 +176,13 @@ const run = async () => {
         });
 
         // set admin role
-        app.put('/users/admin/:email', verifyToken, async (req, res) => {
-            const email = req.params.email;
-            const requester = req.decoded.email;
-            const requesterUser = await userCollection.findOne({
-                email: requester,g
-            });
+        app.put(
+            '/users/admin/:email',
+            verifyToken,
+            verifyAdmin,
+            async (req, res) => {
+                const email = req.params.email;
 
-            if (requesterUser.role === 'Admin') {
                 const query = { email };
                 const updateDoc = {
                     $set: { role: 'Admin' },
@@ -173,18 +190,24 @@ const run = async () => {
 
                 const result = await userCollection.updateOne(query, updateDoc);
                 res.send(result);
-            } else {
-                res.status(403).send({message: 'Forbidden Access'})
             }
-        });
+        );
 
         app.get('/admin/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
-            const user = await userCollection.findOne({email})
+            const user = await userCollection.findOne({ email });
             const isAdmin = user.role === 'Admin';
 
-            res.send({admin: isAdmin})
-        })
+            res.send({ admin: isAdmin });
+        });
+
+        // doctor post api
+        app.post('/doctor', verifyToken, verifyAdmin, async (req, res) => {
+            const data = req.body;
+            const result = await doctorCollection.insertOne(data);
+
+            res.send(result);
+        });
     } finally {
     }
 };
