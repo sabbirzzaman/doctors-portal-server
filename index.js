@@ -208,6 +208,13 @@ const run = async () => {
 
             res.send(result);
         });
+
+        // doctors api
+        app.get('/doctors', verifyToken, async (req, res) => {
+            const result = await doctorCollection.find().toArray();
+
+            res.send(result)
+        })
     } finally {
     }
 };
