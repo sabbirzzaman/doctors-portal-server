@@ -215,6 +215,15 @@ const run = async () => {
 
             res.send(result)
         })
+
+        // delete doctors
+        app.delete('/doctor/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+            const query = {email}
+            const result = await doctorCollection.deleteOne(query);
+
+            res.send(result)
+        })
     } finally {
     }
 };
