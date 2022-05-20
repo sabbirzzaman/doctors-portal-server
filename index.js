@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
 const app = express();
@@ -141,6 +141,16 @@ const run = async () => {
             }
         });
 
+        // Booking Api by id
+        app.get('/booking/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+
+            const query = {_id : ObjectId(id)}
+            const result = await bookingCollection.findOne(query);
+
+            res.send(result)
+        });
+
         // user api
         app.get('/users', verifyToken, async (req, res) => {
             const result = await userCollection.find().toArray();
@@ -222,7 +232,7 @@ const run = async () => {
             const query = {email}
             const result = await doctorCollection.deleteOne(query);
 
-            res.send(result)
+            res.send(result)         
         })
     } finally {
     }
