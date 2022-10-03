@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 const app = express();
@@ -59,6 +60,10 @@ const run = async () => {
             .db('doctors-collection')
             .collection('doctors');
 
+        const transactionCollection = client
+            .db('doctors-collection')
+            .collection('transactions');
+
         const verifyAdmin = async (req, res, next) => {
             const requester = req.decoded.email;
             const requesterUser = await userCollection.findOne({
@@ -71,6 +76,20 @@ const run = async () => {
                 res.status(403).send({ message: 'Forbidden Access' });
             }
         };
+
+        // payment
+        app.post('/create-payment-intent', verifyToken, async (req, res) => {
+            const { treatmentPrice } = req.body;
+            const amount = treatmentPrice * 100;
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ['card'],
+            });
+
+            res.send({ clientSecret: paymentIntent.client_secret });
+        });
 
         // treatment API
         app.get('/treatments', async (req, res) => {
@@ -144,11 +163,28 @@ const run = async () => {
         // Booking Api by id
         app.get('/booking/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
-
-            const query = {_id : ObjectId(id)}
+            const query = { _id: ObjectId(id) };
             const result = await bookingCollection.findOne(query);
 
-            res.send(result)
+            res.send(result);
+        });
+
+        // payment information
+        app.patch('/booking/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const payment = req.body;
+            const query = { _id: ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId,
+                },
+            };
+
+            const result = await transactionCollection.insertOne(payment);
+            const updated = await bookingCollection.updateOne(query, updateDoc);
+
+            res.send(updated);
         });
 
         // user api
@@ -223,17 +259,17 @@ const run = async () => {
         app.get('/doctors', verifyToken, async (req, res) => {
             const result = await doctorCollection.find().toArray();
 
-            res.send(result)
-        })
+            res.send(result);
+        });
 
         // delete doctors
         app.delete('/doctor/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
-            const query = {email}
+            const query = { email };
             const result = await doctorCollection.deleteOne(query);
 
-            res.send(result)         
-        })
+            res.send(result);
+        });
     } finally {
     }
 };
