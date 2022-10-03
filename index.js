@@ -4,7 +4,7 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const port = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
 const app = express();
 
@@ -281,6 +281,7 @@ app.get('/', (req, res) => {
     res.send('Welcome to doctors portal server');
 });
 
-app.listen(port, () => {
+app.listen(PORT, () => {
     console.log('doctors portal server is running');
 });
+gi
